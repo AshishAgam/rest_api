@@ -6,9 +6,10 @@ from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from blocklist import BLOCKLIST
 from dotenv import load_dotenv
+import redis
+from rq import Queue
 from db import db
 import models
-
 from resources.item import blp as ItemBlueprint
 from resources.store import blp as StoreBlueprint
 from resources.tag import blp as TagBlueprint
@@ -17,6 +18,12 @@ from resources.user import blp as UserBlueprint
 def create_app(db_url=None):
     app=Flask(__name__)
     load_dotenv()
+    
+    connection = redis.from_url(
+    os.getenv("REDIS_URL")
+    )  # Get this from Render.com or run in Docker
+    
+    app.queue = Queue("emails", connection=connection)
 
     app.config["PROPAGATE_EXCEPTIONS"] = True
     app.config["API_TITLE"] = "Stores REST API"
@@ -34,6 +41,7 @@ def create_app(db_url=None):
     
     with app.app_context():
         db.create_all()
+        # db.drop_all()
     
     app.config["JWT_SECRET_KEY"] = "94102446169467643060259840390540006280"
     jwt= JWTManager(app)
